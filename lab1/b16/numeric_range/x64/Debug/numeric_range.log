@@ -1,5 +1,0 @@
-﻿  numeric_range_test.cpp
-d:\c++\b16\numeric_range\numeric_range_test.cpp(330): warning C4244: 'initializing': conversion from 'LL' to 'int', possible loss of data
-d:\c++\b16\numeric_range\numeric_range_test.cpp(335): warning C4244: 'initializing': conversion from 'LL' to 'int', possible loss of data
-d:\c++\b16\numeric_range\numeric_range_test.cpp(340): warning C4244: 'initializing': conversion from 'LL' to 'int', possible loss of data
-  numeric_range.vcxproj -> D:\c++\b16\numeric_range\x64\Debug\numeric_range.exe
