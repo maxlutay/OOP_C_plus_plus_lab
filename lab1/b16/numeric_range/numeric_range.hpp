@@ -3,24 +3,24 @@
 
 
 #include <iostream>
-#include <string>
-#include <regex>
 
 typedef long long LL;
 
 
 
 class NumericRange{
+
+
+private:
 	LL low, high;
 
-	bool isStringValidFormat(const char*) const;
+	bool isStringValidFormat(const char&) const;
 
-	LL getLowFromStr(const char*) const;
-	LL getHighFromStr(const char*) const;
-
+	void setLowHighFromValidString(const char&);
 
 
 public:
+
 	class Iterator {
 		LL first;
 		LL last;
@@ -33,10 +33,10 @@ public:
 		friend class NumericRange;
 
 	  public:
-		Iterator(NumericRange);
+		Iterator(const NumericRange&);
 
-		bool operator== (Iterator) const;
-		bool operator!= (Iterator) const;
+		bool operator== (const Iterator&) const;
+		bool operator!= (const Iterator&) const;
 		Iterator&  operator ++();
 		Iterator operator ++(int);
 
@@ -47,7 +47,7 @@ public:
 
 	} ;
 
- public:
+
 
 	NumericRange();
 	NumericRange(LL, LL);
@@ -56,18 +56,18 @@ public:
 	inline LL getHighBound() const;
 	LL getWidth() const;
 	bool contains(LL) const;
-	bool intersectsWith(NumericRange) const;
-	bool includes(NumericRange) const;
-	bool belongsTo(NumericRange) const;
-	bool adjacentTo(NumericRange) const;
+	bool intersectsWith(const NumericRange&) const;
+	bool includes(const NumericRange&) const;
+	bool belongsTo(const NumericRange&) const;
+	bool adjacentTo(const NumericRange&) const;
 
 
-	bool operator!= (NumericRange) const;
-	inline bool operator== (NumericRange) const;
-	bool operator< (NumericRange) const;
-	bool operator> (NumericRange) const;
-	bool operator<= (NumericRange) const;
-	bool operator>= (NumericRange)  const;
+	bool operator!= (const NumericRange&) const;
+	inline bool operator== (const NumericRange&) const;
+	bool operator< (const NumericRange&) const;
+	bool operator> (const NumericRange&) const;
+	bool operator<= (const NumericRange&) const;
+	bool operator>= (const NumericRange&)  const;
 
 	Iterator begin() const;
 	Iterator end() const;

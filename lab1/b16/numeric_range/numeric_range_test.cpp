@@ -353,7 +353,10 @@ DECLARE_OOP_TEST( numeric_range_test_stream_output )
 	s << r;
 
 	assert( s.str() == "[1:6]" );
+	//throw "end";
 }
 
 
 /*****************************************************************************/
+
+

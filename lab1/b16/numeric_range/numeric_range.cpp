@@ -1,5 +1,10 @@
 #include "numeric_range.hpp"
 
+
+
+#include <string>
+#include <regex>
+
 #include <stdexcept>
 
 NumericRange::NumericRange() {
@@ -10,66 +15,41 @@ NumericRange::NumericRange() {
 
 NumericRange::NumericRange(LL _from, LL _to) {
 	
-	/*try {*/
-		if (_from > _to) { throw std::logic_error("Low bound higher than high bound"); };
+
+		if (_from > _to) { low = 0; high = 0; throw std::logic_error("Low bound higher than high bound"); };
 		low = _from;
 		high = _to;
-	/*}catch (std::logic_error err) {
-		std::cerr<< err.what() ;
-	};*/
+
 
 };
 
 NumericRange::NumericRange(const char* _str_ptr){	
-	/*try {*/
-	if (!isStringValidFormat(_str_ptr)) { std::cout << "\nInvalid format\n"; throw std::logic_error("Invalid format");return; };
-		low = getLowFromStr(_str_ptr);
-		high = getHighFromStr(_str_ptr);
-		std::cout << "\n low : " << low << "  high : " << high << "\n";
-		if (low > high) { low = 0; high = 0; throw std::logic_error("Low bound higher than high bound"); };
 
-	/*}catch (std::logic_error err) {
-		std::cerr << err.what();
-		
-	};*/
-};
+	if (!isStringValidFormat(*_str_ptr)) { throw std::logic_error("Invalid format");return; };
 
-LL NumericRange::getLowFromStr(const char* _str_ptr) const {
-	std::string str(_str_ptr);
-	//std::smatch m;
-	//std::regex("(\\d+)");
-	//std::cout << str << "...";
-	//for (auto v : m) {
-	//	std::cout << v << " ... ";
-	//};
-	//return std::stoll( m[0].str() );
-	int from = str.find_first_of('[') + 1;
-	std::string t = str.substr( from , str.find_first_of(':') - from );
-	std::cout << t << "__/";
-	return std::stoll( t );
-};
+	setLowHighFromValidString(*_str_ptr);
 
-LL NumericRange::getHighFromStr(const char* _str_ptr) const {
-	std::string str(_str_ptr);
-	//std::smatch m;
-	//std::regex("(\\d+)");
-	//std::cout << str << "...";
-	//for (auto v : m) {
-	//	std::cout << v << " ... ";
-	//};
-	//return std::stoll( m[1].str() );
+	if (low > high) { low = 0; high = 0; throw std::logic_error("Low bound higher than high bound"); };
 
-	int from = str.find_first_of(':') + 1;
-	int len = str.size() - from - 1;
-
-	std::string t = str.substr(from, len  );
-	std::cout << t << "__/";
-	return std::stoll(t);
 
 };
 
-bool NumericRange::isStringValidFormat(const char* _str_ptr) const {
-	std::string str(_str_ptr);
+void NumericRange::setLowHighFromValidString( const char& _str_link ) {
+	std::string str(&_str_link);
+	std::smatch m;
+
+	std::regex r("\\s*\\[(-?\\d+):(-?\\d+)\\]\\s*");
+
+	std::regex_match(str, m, r);
+
+	low = std::stoll(m[1]);
+	high = std::stoll(m[2]);
+}
+
+
+
+bool NumericRange::isStringValidFormat(const char& _str_link) const {
+	std::string str(&_str_link);
 	std::regex r("\\s*\\[-?\\d+:-?\\d+\\]\\s*");
 
 	if ( std::regex_match(str,r) ) { 
@@ -98,44 +78,44 @@ bool NumericRange::contains(LL _num) const {
 	return 	( _num >= low && _num <= high );
 };
 
-bool NumericRange::intersectsWith(NumericRange _range) const {
+bool NumericRange::intersectsWith(const NumericRange& _range) const {
 	return !(_range.getHighBound() < low || _range.getLowBound() > high) ; //not intersects when range1 is less then range2's min or when range1 is bigger then range2's max 
 };
 
 
-bool NumericRange::includes(NumericRange _range) const {
+bool NumericRange::includes(const NumericRange& _range) const {
 	return ( _range.getLowBound() >= low  &&  _range.getHighBound() <= high );
 };
 
-bool NumericRange::belongsTo(NumericRange _range) const {
+bool NumericRange::belongsTo(const NumericRange& _range) const {
 	return _range.includes(*this);
 };
 
-bool NumericRange::adjacentTo(NumericRange _range) const {
-	return _range.getHighBound() < this->getLowBound() || _range.getLowBound() > this->getHighBound();
+bool NumericRange::adjacentTo(const NumericRange& _range) const {
+	return ( _range.getHighBound() + 1 == this->getLowBound() )|| ( _range.getLowBound() - 1 == this->getHighBound() );
 };
 
-bool NumericRange::operator== (NumericRange _range) const {
+bool NumericRange::operator== (const NumericRange& _range) const {
 	return (low == _range.getLowBound() &&  high == _range.getHighBound() );
 };
 
-bool NumericRange::operator!= (NumericRange _range) const {
+bool NumericRange::operator!= (const NumericRange& _range) const {
 	return ! (*this == _range);
 };
 
-bool NumericRange::operator< (NumericRange _range) const {
+bool NumericRange::operator< (const NumericRange& _range) const {
 	return (low < _range.getLowBound()) ? true :  (   (low == _range.getLowBound()) ? (high < _range.getHighBound()) : false   );
 };
 
-bool NumericRange::operator<= (NumericRange _range) const {
+bool NumericRange::operator<= (const NumericRange& _range) const {
 	return *this == _range || *this < _range;
 };
 
-bool NumericRange::operator> (NumericRange _range) const {
+bool NumericRange::operator> (const NumericRange& _range) const {
 	return _range < *this;
 };
 
-bool NumericRange::operator>= (NumericRange _range) const {
+bool NumericRange::operator>= (const NumericRange& _range) const {
 	return _range <= *this ;
 };
 
@@ -153,10 +133,9 @@ NumericRange::Iterator NumericRange::end() const {
 	return it ;
 };
 
-NumericRange::Iterator::Iterator(NumericRange _range) {
+NumericRange::Iterator::Iterator(const NumericRange& _range) {
 	first = _range.getLowBound();
 	last = _range.getHighBound();
-
 };
 
 
@@ -172,8 +151,12 @@ LL NumericRange::Iterator::operator*() const {
 };
 
 NumericRange::Iterator NumericRange::Iterator::operator++ (int) {
+
+	Iterator copy = *this;
+
 	counter = counter + 1;
-	return *this;
+
+	return copy;
 };
 
 NumericRange::Iterator& NumericRange::Iterator::operator++ (){
@@ -181,19 +164,16 @@ NumericRange::Iterator& NumericRange::Iterator::operator++ (){
 	return *this;
 };
 
-bool NumericRange::Iterator::operator== (NumericRange::Iterator _it) const {
+bool NumericRange::Iterator::operator== (const NumericRange::Iterator &_it) const {
 	return this->counter == _it.counter && this->first == _it.first && this->last == _it.last;
 };
 
-bool NumericRange::Iterator::operator!= (NumericRange::Iterator _it) const {
+bool NumericRange::Iterator::operator!= (const NumericRange::Iterator &_it) const {
 	return  !( *this == _it );
 };
 
 
 std::ostream & operator << (std::ostream & o, NumericRange _range) {
-	//for (LL i = _range.getLowBound(), l = _range.getHighBound(); i < l; i += 1) {
-	//	o << i ;
-	//};
 
 	o << "[" << _range.getLowBound() << ":"<< _range.getHighBound() << "]";
 
