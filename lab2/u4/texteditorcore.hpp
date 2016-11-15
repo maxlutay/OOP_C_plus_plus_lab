@@ -1,188 +1,151 @@
 #ifndef  __TEXTEDITORCORE_HPP__
 #define __TEXTEDITORCORE_HPP__
 
-
 #include <iostream>
-#include<fstream>
 #include <string>
-//#include <list> // or vector ?
 #include<vector>
-#include<utility>//for std::pair
 #include<fstream>
 
 #include"messages.hpp"
 
-typedef unsigned long UL;
 
+class TextEditorCore {//text editor core
 
-
-class TEC {//text editor core
-private:
-	enum class mode{
-		Edit,
-		Select,
-		//Find
-	
-	}currentMode = mode::Edit;
-
-	
-	
-	UL 
-		totalsymbols = 0,
-		maxcols = 0,
-		maxrows = 0;
-
-
-
+public:
 	struct position {
-		position() :row(0ul), column(0ul) {};
-		position(UL _r, UL _c) :row(_r), column(_c) {};
-		position (const position&) = default;
-		position& operator =(const position&) = default;
-		position (position&&) = default;
-		position& operator =(position&&) = default;
+			
+			position() :row(0l), col(0l) {};
+			position(long _r, long _c) :row(_r > 0l ? _r : 0l ), col(_c > 0l ? _c : 0l) {};
 
-		UL 
-		row,
-		column;
-	}
-	cursor;
+			position (const position&)            = default;
+			position& operator =(const position&) = default;
+			position (position&&)                 = default;
+			position& operator =(position&&)      = default;
 
+			bool operator ==(position& _cp) const { return row == _cp.row && col == _cp.col; };
+			bool operator !=(position& _cp) const { return row != _cp.row || col != _cp.col; };
 
 
-	struct {
-		std::string* searchtext = nullptr;
-		bool reachedend = false, found = false;
-		position last_found_at;
-	} findparams , findparamsPrev;
+			long row, col; //not private because wanted direct manipulation ?or provide method
 
+	};
 
+private:
 
-	struct {
-		position from, to;
-	} selection	;
+	enum class mode {
+		Edit,
+		Select
+	};
 
+	struct { position from, to; } selection;	//default 0,0 : 0,0 because of position's default constructor
+	mode currentMode = mode::Edit;
+	position cursor;							//default 0,0 because of position's default constructor
+	std::vector<  std::string > container;
+	long totalsymbols = 0;
+
+	struct { 
+		position lastFoundAt ;
+		std::string searchString = "";
+	} findParams;
 	
-	
-	std::vector< std::pair< UL , std::string* >* >* container;
 
-
-	bool validatePosition(position,const char*) const;
-
-	void multilineInsert(UL, UL, std::string&);
-
-	void insertNewLine(UL);
-
-	void multilineDelete(UL, UL, UL, UL);
-
-	void refreshTotalsymbolsMaxcolsMaxrows();
-
-	void normalizeselection();
-
-
-
-
-	
-	
+	bool validatePosition( position) const;
+	void multilineInsert( position,const std::string&);
+	void insertNewLine( position);
+	void multilineDelete( position, position);
+	void refreshTotalSymbols();
+	void normalizeSelection();
+		
+	position* whatCursorMethodsChanging() ;
 	
 public:
-	//dev
-	TEC& outputCursorPos();
-	TEC& outputAll();
-	TEC& outputSelectPoss();
+//dev start
+
+	TextEditorCore& outputCursorPos();
+	TextEditorCore& outputAll();
+	TextEditorCore& outputSelectPoss();
 
 
-	UL getTotal() { return totalsymbols; };
-	UL getMaxRows() { return maxrows; };
+//dev end
+//base start
 
-	//base start
-	TEC();
-	TEC(std::istream&);
+	TextEditorCore();
+	TextEditorCore(std::istream&);
 
-	TEC(const TEC&)             = delete;
-	TEC& operator= (const TEC&) = delete;
+	TextEditorCore(const TextEditorCore&)             = delete;
+	TextEditorCore& operator= (const TextEditorCore&) = delete;
 
-	TEC(TEC&&)                  = delete;
-	TEC& operator= (TEC&&)      = delete;
+	TextEditorCore(TextEditorCore&&)                  = delete;
+	TextEditorCore& operator= (TextEditorCore&&)      = delete;
 
-	~TEC();
+	~TextEditorCore() = default;
 
-	//base end
-	//cursor start
+//base end
+//cursor start
 	
-	UL getCursorRow() const;
-	UL getCursorColumn() const;
+	position getCursorPosition() const;
 
-	TEC& cursorGoOneUp();
-	TEC& cursorGoOneRight();
-	TEC& cursorGoOneDown();
-	TEC& cursorGoOneLeft();
+	TextEditorCore& cursorGoOneUp();
+	TextEditorCore& cursorGoOneRight();
+	TextEditorCore& cursorGoOneDown();
+	TextEditorCore& cursorGoOneLeft();
 
-	TEC& cursorGoTo(UL, UL);
+	TextEditorCore& cursorGoTo(position);
 
-	//cursor end
-	//edit start
+//cursor end
+//edit start
 	
-	TEC& insert(const char);
-	TEC& insert(const char*);
-	TEC& TEC::insert(std::string&);
-	TEC& deleteSelectedSegment();
+	TextEditorCore& insert(char);
+	TextEditorCore& insert(const char*);
+	TextEditorCore& TextEditorCore::insert(const std::string&);
+	TextEditorCore& deleteSelectedSegment();
 	
-	//edit end
-	//HOME,END start
+//edit end
+//HOME,END start
 	
-	TEC& HOMEkey();
-	TEC& ENDkey();
-	TEC& CtrlHOMEkey();
-	TEC& CtrlENDkey();
+	TextEditorCore& HOMEkey();
+	TextEditorCore& ENDkey();
+	TextEditorCore& CtrlHOMEkey();
+	TextEditorCore& CtrlENDkey();
+	
+//HOME,END end
+//save to output stream start
 
-	
-	//HOME,END end
-	
-	
-	//save to output stream
-	TEC& saveTo( std::ostream& );///param shld bi stream
-	
-				  
-	//select start
-	TEC& selectBegin();
-	TEC& selectEnd();
-	TEC& selectReset();
-	std::string& selectSelected()  ;
+	TextEditorCore& saveTo(std::ostream& ) ;//!!not const;//can't be const method because of returning
+													//const this on const TextEditorCore
+													//because of cascade.
+											// const ptr(i.e. &) on non-const std::ostream
 
-	//select end
-	//find && replace start
+//save to os end
+//select start
+
+	TextEditorCore& selectBegin();
+	TextEditorCore& selectEnd();
+	TextEditorCore& selectReset();
+	std::string& selectSelected();//!!not const;//can't be const because of 
+												//non-const private normalizeSelection() method
+
+//select end
+//find start
 	
-	position find(const char*) ;
-	position find(char*) ;
-	position find(std::string&) ;
-	position findNext();
-	position finder(std::string& _str, position& _p  = position{ 0,0 }) ;
+	position find(const char*)  ;
+	position find(const std::string&) ;
+	position findNext()  ;
+	position finder(const std::string& _str, position& _p )  ;
+	
+//find end
+//replace start
+
 	bool replace( const char*,const char* );
-	bool replace( char*,char*);
+		//bool replace( char*,char*);
 	bool replace(std::string&,std::string&);
 	bool replaceAll(const char*, const char*);
-	bool replaceAll(char*, char*);
+		//bool replaceAll(char*, char*);
 	bool replaceAll(std::string&, std::string&);
 
-	//find && replace end
-	
-
-
-
-
-
+//replace end	
 
 
 };
-
-
-
-
-
-
-
-
-
 
 #endif // ! __TEXTEDITORCORE_HPP__

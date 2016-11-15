@@ -1,318 +1,301 @@
 #include "texteditorcore.hpp"
 
-//#include <regex>
 #include <sstream>
-//#include<functional>
 
-bool TEC::validatePosition(TEC::position _pos, const char* _validatemode = "all") const {
-	/*
-	if (_validatemode == "down") {
-		return _pos.row < this->container->size();
-	}else if (_validatemode == "up") {
-		return _pos.row > 0;
-	}else if (_validatemode == "left") {
-		return _pos.column > 0;
-	}else if(_validatemode == "right"){
-		return _pos.column < this->container->at(_pos.row)->first;
-	}else {
-	*/	return
+
+bool TextEditorCore::validatePosition( const TextEditorCore::position _pos) const {
+	return
 			_pos.row >= 0 &&
-			_pos.column >= 0 &&
-			_pos.row <= (this->container->size()) &&
-			_pos.column <= (this->container->at(_pos.row)->first);
-	//};
-	
-
+			_pos.col >= 0 &&
+			_pos.row < (this->container.size() ) &&
+			_pos.col <= (this->container.at(_pos.row).length()  );
 };
 
 
-void TEC::multilineInsert(UL _row, UL _col, std::string& _text) {
+void TextEditorCore::multilineInsert(position _p, const std::string& _text) {	
+	if (_text == "") { return; };//do nothing
 
 
-	if (_text == "") { return; };
+	std::string line, tail;
+	std::stringstream ss{ _text };
 
-	std::string *line = new std::string, *memotail = nullptr;
-	std::stringstream ss{_text};
-
-	bool start_appended = false;
-	UL count = 0;
+	bool is_untill_new_line_appended = false;
+	long n_symbols_added = 0, count = 0;//count counts rows for further tail insertion
 	
 
-	while (std::getline( ss, *line, '\n')) {
+
+	tail = std::string{ container.at(_p.row).substr(_p.col, container.at(_p.row).length() - _p.col) };//remember tail
+	container.at(_p.row).erase(container.at(_p.row).begin() + _p.col, container.at(_p.row).end());//remove tail
 
 
-		if (!start_appended) {
-			start_appended = true;
-			memotail = new std::string( container->at(_row)->second->substr(_col, container->at(_row)->first - _col) );
+	while ( std::getline( ss, line, '\n') ) {
 
-			container->at(_row)->second->replace(container->at(_row)->second->begin() + _col, container->at(_row)->second->end(),"");
 
-			container->at(_row)->second->append(*line);
-			container->at(_row)->first = container->at(_row)->second->size();
+		if (!is_untill_new_line_appended) {
+
+			is_untill_new_line_appended = true;
+			container.at(_p.row).append(line);
+		
 		}else {
 
-			container->insert(container->begin() + _row + ( ++count ), new std::pair< UL, std::string* >{ line->length(), line });
+			++count;
+			container.insert(container.begin() + _p.row + count , line );
 
 		};
-		//no delete 
-		line = new std::string;
+
+		n_symbols_added += line.length() + 1;
+
+		line.erase();
 	};
 
 
 	if (_text.at(_text.size() - 1 ) == '\n') {
-		insertNewLine(_row + (count++) );
+		insertNewLine(position{ _p.row + (count++),0 });
 	};
 	
-	container->at(_row + count  )->second->append(*memotail);
-	container->at(_row + count  )->first  += memotail->length();
-
 	
-	cursorGoTo( _row + count , container->at(_row + count)->first);
+	container.at(_p.row + count  ).append(tail);
+	
+	cursorGoTo(position{ _p.row + count , container.at(_p.row).size() });
 
 	//outputAll();
-	refreshTotalsymbolsMaxcolsMaxrows();
+	refreshTotalSymbols();
 
 
 };
 
 
-void TEC::insertNewLine(UL _row) {	
+void TextEditorCore::insertNewLine(position _p) {	
 
-		container->insert(container->begin() + _row + 1, new std::pair<UL, std::string* >{ 0ul, new std::string  });
+	container.insert(container.begin() + _p.row + 1, std::string{} );
 
 };
 
 
-void TEC::multilineDelete(UL _row1, UL _col1, UL _row2, UL _col2) {
+void TextEditorCore::multilineDelete(position _from, position _to) {
+	//delete all between from and to
 
+	if (_from.row == _to.row) {
 
+		if (_from.col == _to.col) { return; };     //do nothing or throw exception ?
 
-	if (_row1 == _row2) {
-		if (_col1 == _col2) { return; };
-		container->at(_row1)->second->replace(_col1 ,_col2 -  _col1 , "");
+		container.at(_from.row).erase(_from.col ,_to.col - _from.col );
+	
 	} else {
 
-		auto pstart = container->at(_row1);
-		pstart->second->replace(_col1, pstart->first - _col1 , "");
-
-		auto pend = container->at(_row2);
-		pend->second->replace(0, _col2, "");
-
-
-		if ( (_row1 - _row2) > 1) {
-			container->erase(container->begin() + _row1 + 1, container->begin() + _row2 - 1);
+		long from_row_len = container.at(_from.row).length();
+		container.at(_from.row).erase(_from.col, from_row_len - _from.col);
+		
+		container.at(_to.col).erase(0, _to.col);
+		
+		if ( (_to.row - _from.row) > 1 ) { // 100 - 0 = 100 > 1 ; 2 - 0 = 2 > 1 ; 1 - 0 = 1 ;   
+			container.erase(container.begin() + _from.row + 1, container.begin() + _to.row - 1); // 0 + 1 = 1, 100 - 1 = 99 : 1 to 99;___ 0 + 1 = 1, 2 - 1 = 1 : 1 to 1;___ 0 + 1 = 1, 1 - 1 = 0 invalid 
 		};
-
-
+		
 	};
 	
-	refreshTotalsymbolsMaxcolsMaxrows();
+	refreshTotalSymbols();
 	
 	//outputAll();
 };
 
 
-void TEC::refreshTotalsymbolsMaxcolsMaxrows() {
+void TextEditorCore::refreshTotalSymbols() {
 
 	totalsymbols = 0;
 
-	for (auto sth : *container) {
+	for (auto sth : container) {
 
-		totalsymbols = totalsymbols + sth->first + 1 ;
-		
-
-		if (maxcols < sth->first) {
-			maxcols = sth->first;
-		};
+		totalsymbols = totalsymbols + sth.length();
 	};
-	maxrows = container->size();
 };
 
-void TEC::normalizeselection() {
+void TextEditorCore::normalizeSelection() {
 	if (selection.from.row > selection.to.row) {
-		position temp(selection.to.row, selection.to.column);
+		
+		position temp{ selection.to.row, selection.to.col };
+		
 		selection.to = selection.from;
+		
 		selection.from = temp;
-	} else if ( selection.from.column > selection.to.column ) {
-		UL temp = selection.to.column;
-		selection.to.column = selection.from.column;
-		selection.from.column = temp;
+	
+	} else if ( selection.from.col > selection.to.col ) {
+		
+		long temp = selection.to.col;
+		
+		selection.to.col = selection.from.col;
+		
+		selection.from.col = temp;
+	};
+
+	//else do nothing
+};
+
+
+TextEditorCore::position* TextEditorCore::whatCursorMethodsChanging()  {
+
+	if (currentMode == mode::Edit) {
+		return  &cursor;
+	} else {
+		return  &selection.to;
 	};
 };
 
-TEC& TEC::outputAll()  {
-	for (auto sth : *container) {
-		std::cout << "\n~" << sth->first << "\t>" << *sth->second;
+
+TextEditorCore& TextEditorCore::outputCursorPos() {
+	std::cout << "\n row: " << cursor.row << " col: " << cursor.col << "\n";
+
+	return *this;
+};
+
+
+
+TextEditorCore& TextEditorCore::outputAll()  {
+	for (auto sth : container) {
+		std::cout << "\n~" << sth.length() << "\t>" << sth;
 	};
 
 	return *this;
 };
 
 
-TEC& TEC::outputCursorPos()  {
-	std::cout << "\n row: " << getCursorRow() << " col: " << getCursorColumn() << "\n";
-
-	return *this;
-};
-
-TEC& TEC::outputSelectPoss() {
-	std::cout << "\n from \t row: " << selection.from.row << " col: " << selection.from.column << "\n to \t row: " << selection.to.row << " col: " << selection.to.column << "\n";
+TextEditorCore& TextEditorCore::outputSelectPoss() {
+	std::cout << "\n from \t row: " << selection.from.row << " col: " << selection.from.col << "\n to \t row: " << selection.to.row << " col: " << selection.to.col << "\n";
+	
 	return *this;
 };
 
 
 
 
-TEC::TEC(){	
+TextEditorCore::TextEditorCore(){	
 
-	container = new std::vector<std::pair<UL, std::string* >* >;
+	container.push_back(std::string{});
+
+	//else is default
 	
-	std::string* s = new std::string{};//could be setted default phrase
+};
 
-	std::pair<UL, std::string*>* p = new std::pair<UL, std::string*>{ s->length(),s };
-
-	container->push_back(p);
-
+TextEditorCore::TextEditorCore(std::istream& _inpf):TextEditorCore() {//delegated constructor
 	
+	container.erase( container.begin() );//erase 0s row created by default constructor
+
+	std::string line{};
+
+
+	while (std::getline(_inpf, line,'\n')) {		
+		
+		container.push_back( line );//push line's  copybyvalue 
+		
+		line.erase();
+	};
+		
+
+	refreshTotalSymbols();
 
 	//outputAll();
-};
-
-TEC::TEC(std::istream& _inpf):TEC() {//delegated constructor
-	
-	container->erase(container->begin());//erase 0s row created by default constructor
-
-	std::string* line = new std::string{};
-
-
-	while (std::getline(_inpf, *line,'\n')) {
-		
-		
-		container->push_back(new  std::pair< UL, std::string* >{ line->length(), line });
-		
-		//no delete 
-
-		line = new std::string;
-	};
-
-	
-
-	refreshTotalsymbolsMaxcolsMaxrows();
-
-	//outputAll();
 
 
 };
 
-TEC::~TEC() {
-	for (auto sth : *container) {
-		delete (*sth).second;
-		delete sth;
-	};
 
-	delete container;
+/*
+TextEditorCore::~TextEditorCore() {
+ok, no pointers - no manual deletion 
+};
+*/
+
+inline TextEditorCore::position TextEditorCore::getCursorPosition() const{
+	return cursor;
 };
 
- UL TEC::getCursorColumn() const{
-	return cursor.column;
-};
 
-UL TEC::getCursorRow() const {
-	return cursor.row;
-};
+TextEditorCore& TextEditorCore::cursorGoOneUp() {
 
-TEC& TEC::cursorGoOneUp() {
-
-		position* what_is_changing;
-		if (currentMode == mode::Edit) {
-			what_is_changing = &cursor;
-		}else {
-			what_is_changing = &selection.to;
-		};
+	position* what_is_changing = whatCursorMethodsChanging();
 		
 		
-		if ( (*what_is_changing).row > 0) {
-			--(*what_is_changing).row;
+		if ( (*what_is_changing).row > 0l) {//1,2,3,...//no poss above zer0
+			--(*what_is_changing).row;//0,1,2,...
 
-			if ((*what_is_changing).column > container->at((*what_is_changing).row)->first && (*what_is_changing).row != 0ul) {
+			if ((*what_is_changing).col > container.at((*what_is_changing).row).length() /*&& (*what_is_changing).row != 0l*/) {  //old > allowed 
 
-				(*what_is_changing).column = container->at((*what_is_changing).row)->first;
+				(*what_is_changing).col = container.at((*what_is_changing).row).length();
 
 			};		
 		  };
 
+		//	e.g. old pos: 10,20
+		//  wanted pos: 9,20
+		//	but 9's row length : 15
+		//	so result pos : 9,15 i.e. after last character at 9's string
+
+
 		return *this;
 };
 
-TEC& TEC::cursorGoOneDown() {
+TextEditorCore& TextEditorCore::cursorGoOneDown() {
 
 
-		position* what_is_changing;
-		if (currentMode == mode::Edit) {
-			what_is_changing = &cursor;
-		} else {
-			what_is_changing = &selection.to;
-		};
+	position* what_is_changing = whatCursorMethodsChanging();
 
 
-		if ((*what_is_changing).row + 1  < container->size()) {
+
+		if ((*what_is_changing).row + 1  < container.size()) { // if wanted is less or equal then allowed
+																// e.g. size is 50, so allowed are from 0 to 49 
+																//old: 49,wanted:  50, 49 + 1 < 50 => got false
+																//old: 48, wanted: 49, 48 + 1 < 50 => true  
 
 			++(*what_is_changing).row;
 
-			if ((*what_is_changing).column > container->at((*what_is_changing).row)->first) {
-				(*what_is_changing).column = container->at((*what_is_changing).row)->first;
+			if ((*what_is_changing).col > container.at((*what_is_changing).row).length()) {
+				(*what_is_changing).col = container.at((*what_is_changing).row).length();
 			};
 		};
 
-
+		//see cursorGoOneUp
 
 		return *this;
 };
 
-TEC& TEC::cursorGoOneLeft() {
+TextEditorCore& TextEditorCore::cursorGoOneLeft() {
 
-		position* what_is_changing;
-		if (currentMode == mode::Edit) {
-			what_is_changing = &cursor;
-		}
-		else {
-			what_is_changing = &selection.to;
-		};
+	position* what_is_changing = whatCursorMethodsChanging();
 
 
-			if ((*what_is_changing).column > 0) {
-				--(*what_is_changing).column;
-			} else {
-				if ((*what_is_changing).row > 0ul) {
+
+			if ((*what_is_changing).col > 0l) {
+				--(*what_is_changing).col;
+			} else {//old : x,0
+				if ((*what_is_changing).row > 0l) {// old not :0,0
 					cursorGoOneUp();
-					(*what_is_changing).column = container->at((*what_is_changing).row)->first;
+					(*what_is_changing).col = container.at((*what_is_changing).row).length();
 				};
+				//else do nothing
 			};
-			
+			//	e.g. old pos: 10,0
+			//  wanted pos: 9,(9's length)
+			//	9's row length : 15
+			//	so result pos : 9,15 i.e. after last character at 9's string
+
 			
 		return *this;
 };
 
-TEC& TEC::cursorGoOneRight() {
+TextEditorCore& TextEditorCore::cursorGoOneRight() {
 
-	position* what_is_changing;
-	if (currentMode == mode::Edit) {
-		what_is_changing = &cursor;
-	}
-	else {
-		what_is_changing = &selection.to;
-	};
+	position* what_is_changing = whatCursorMethodsChanging();
 
 
 
-			if ((*what_is_changing).column < container->at((*what_is_changing).row)->first) {
+			if ((*what_is_changing).col < container.at((*what_is_changing).row).length() ) {
 
-				++(*what_is_changing).column;
+				++(*what_is_changing).col;
 			} else {
 
-				if ((*what_is_changing).row + 1 < container->size()) {
+				if ((*what_is_changing).row + 1 < container.size()) {
 					cursorGoOneDown();
-					(*what_is_changing).column = 0ul;
+					(*what_is_changing).col = 0l;
 				};
 			
 			};
@@ -322,18 +305,16 @@ TEC& TEC::cursorGoOneRight() {
 		return *this;
 };
 
-TEC& TEC::cursorGoTo(UL _row,UL _col) {
+TextEditorCore& TextEditorCore::cursorGoTo(position _p) {
 
 
-	if ( validatePosition( position(_row,_col) ) ) {
-		if (currentMode == mode::Edit) {
-			cursor.row = _row;
-			cursor.column = _col;
-		}else {
-			selection.to.row = _row;
-			selection.to.column = _col;
-		};
+	if ( validatePosition( _p ) ) {
+		
+		position* changeMe = whatCursorMethodsChanging();
 
+		changeMe->row = _p.row;
+		changeMe->col = _p.col;
+		
 
 	}else {
 		throw std::logic_error(Messages::InvalidPosition);
@@ -342,31 +323,29 @@ TEC& TEC::cursorGoTo(UL _row,UL _col) {
 	return *this;
 };
 
-TEC& TEC::insert(const char _symbol) {
+TextEditorCore& TextEditorCore::insert(const char _symbol) {
 
 	char t[2]{ _symbol };
 
-	multilineInsert(cursor.row, cursor.column, std::string(t));
+	multilineInsert(cursor, std::string{ t });
 
 	return *this;
 };
 
-TEC& TEC::insert(const char* _cstr) {
-	multilineInsert(cursor.row, cursor.column, std::string(_cstr) );
+TextEditorCore& TextEditorCore::insert(const char* _cstr) {
+	multilineInsert(cursor, std::string{ _cstr });
+	
+	return *this;
+};
 
-
+TextEditorCore& TextEditorCore::insert(const std::string& _cstr) {
+	multilineInsert(cursor, _cstr);
 
 	return *this;
 };
 
-TEC& TEC::insert(std::string& _cstr) {
-	multilineInsert(cursor.row, cursor.column, _cstr);
-
-	return *this;
-};
-
-TEC& TEC::deleteSelectedSegment() {
-	multilineDelete( selection.from.row, selection.from.column,selection.to.row,selection.to.column );
+TextEditorCore& TextEditorCore::deleteSelectedSegment() {
+	multilineDelete( selection.from,selection.to );
 
 	selection.to = selection.from;
 
@@ -374,68 +353,61 @@ TEC& TEC::deleteSelectedSegment() {
 };
 
 
-TEC& TEC::HOMEkey() {
-	cursorGoTo( cursor.row,0 );
+TextEditorCore& TextEditorCore::HOMEkey() {
+	cursorGoTo(position{ cursor.row,0l });//temp pos obj
 	return *this;
 };
 
-TEC& TEC::ENDkey() {
-	cursorGoTo(cursor.row, container->at(cursor.row)->first);
+TextEditorCore& TextEditorCore::ENDkey() {
+	cursorGoTo(position{ cursor.row, container.at(cursor.row).length() });
 	return *this;
 };
 
-TEC& TEC::CtrlHOMEkey() {
-	cursorGoTo(0, 0);
+TextEditorCore& TextEditorCore::CtrlHOMEkey() {
+	cursorGoTo(position{});
 	return *this;
 };
 
-TEC& TEC::CtrlENDkey() {
-	UL tmp = container->size() - 1;
-	cursorGoTo( tmp , container->at(tmp )->first );
+TextEditorCore& TextEditorCore::CtrlENDkey() {
+	long tmp = container.size() - 1;
+
+	cursorGoTo(position{ tmp , container.at(tmp).length() });
+
 	return *this;
 };
 
 
 
-TEC& TEC::saveTo(std::ostream& _stream) {
-	std::stringstream ss;
+TextEditorCore& TextEditorCore::saveTo(std::ostream& _stream)  { 
+	
+	for (auto str : container) {
 
-	for (auto p : *container) {
-
-		ss << *p->second << "\n";
+		_stream << str.c_str();
 	
 	};
-
-	//ss.seekp(-1, std::ios_base::end);
-
-	auto ret = ss.str();//got -> std::string
-	ret.pop_back();//needed because of last \n
 	
-	_stream << ret;
-
-
 	return *this;
 };
 
 
 
 
-TEC& TEC::selectBegin() {
+TextEditorCore& TextEditorCore::selectBegin() {
 	currentMode = mode::Select;
 	selection.from.row = selection.to.row = cursor.row;
-	selection.from.column = selection.to.column = cursor.column;
+	selection.from.col = selection.to.col = cursor.col;
 	
 	return *this;
 };
 
-TEC& TEC::selectEnd() {
+TextEditorCore& TextEditorCore::selectEnd() {
 	currentMode = mode::Edit;
 	cursor = selection.to;
 
 	return *this;
 };
 
-TEC& TEC::selectReset() {
+TextEditorCore& TextEditorCore::selectReset() {
 	selectBegin();
 
 	return *this;
@@ -444,129 +416,113 @@ TEC& TEC::selectReset() {
 
 
 
-std::string& TEC::selectSelected() {
-	normalizeselection();
+std::string& TextEditorCore::selectSelected()  {
+	normalizeSelection();
 	
-	std::stringstream ss;
+	std::stringstream ss{};
 
-	if (selection.from.row == selection.to.row) {
-		ss << container->at(selection.from.row)->second->substr(selection.from.column, selection.to.column - selection.from.column) ;
+	if (selection.from.row == selection.to.row) {//select on one line
+
+		ss << container.at(selection.from.row).substr(selection.from.col, selection.to.col - selection.from.col) ;
 	
-	} else {
+	} else {//2 lines and more
 		
-		ss << container->at(selection.from.row)->second->substr(selection.from.column, container->at(selection.from.row)->first - selection.from.column) << "\n";
+		ss << container.at(selection.from.row).substr(selection.from.col, container.at(selection.from.row).length() - selection.from.col) << "\n";
 
 
 		if (selection.from.row - selection.to.row > 1) {
-			for (UL i = (selection.from.row + 1);i < selection.to.row; i++) {
+			for (long i = (selection.from.row + 1);i < selection.to.row; i++) {//between head and tail if n of selected lines more than 3
 
-				ss << *container->at(i)->second << "\n";
+				ss << container.at(i) << "\n";
 			};
 		};
-
-
-
-
-		ss << container->at(selection.to.row)->second->substr(0, selection.to.column) << "\n";
+		
+		ss << container.at(selection.to.row).substr(0, selection.to.col) << "\n";
 
 	};
 
-	std::string* ret = new std::string{ ss.str() };//got -> std::string
-	
+	return ss.str(); //got -> std::string
 
-	return *ret;
 };
 
 
 
-TEC::position TEC::find(std::string& _str)  {//find first
-	delete findparams.searchtext;
-	//searchtext = new std::string{ _str };
-	//return findNext(*searchtext);
-	return finder(_str);
+TextEditorCore::position TextEditorCore::find(const std::string& _str)  {//find first instance
+	return finder(_str, position{});
 };
 
-TEC::position TEC::find(const char* _str)  {
-	delete findparams.searchtext;
-	findparams.searchtext = new std::string{ _str };
-	return finder(*findparams.searchtext);
-};
-
-TEC::position TEC::find(char* _str)  {
-	delete findparams.searchtext;
-	findparams.searchtext = new std::string{ _str };
-
-	return finder(*findparams.searchtext);
+TextEditorCore::position TextEditorCore::find(const char* _str)  {//find first instance
+	return find(std::string{ _str });
 };
 
 
-TEC::position TEC::findNext() {
-	if (!findparams.reachedend) {
-		position tmp = findparams.last_found_at;
-		tmp.column += findparams.searchtext->length();
-
+TextEditorCore::position TextEditorCore::findNext() {
+	if (findParams.lastFoundAt != position{ container.size() - 1, container.at(container.size() - 1 ).length() }) {
 		
+		return finder(findParams.searchString, findParams.lastFoundAt);
 
-		position temp = finder(*findparams.searchtext, tmp);
-
-		if (!findparams.reachedend) { return temp; }
-		else {  throw std::logic_error(Messages::NotFound);	};
 	}else{
 		throw std::logic_error(Messages::NotFound);
 	};
 };
 
-TEC::position TEC::finder(std::string& _str, TEC::position& _p) {
+TextEditorCore::position TextEditorCore::finder(const std::string& _str, TextEditorCore::position& _p ) {
 
-	findparamsPrev = findparams;
 
-	for (UL i = _p.row; i < maxrows; i++) {
-		UL j;
-		if ((j = container->at(i)->second->find(_str,i == _p.row ? _p.column : 0)) != std::string::npos) { findparams.found = true;  return (findparams.last_found_at = position{ i, j }); };
+
+	findParams.searchString = _str;
+
+	for (long i = _p.row; i  < container.size() ; i++) {
+		long j = container.at(i).find(_str, (i == _p.row) ? _p.col : 0);//start searching from _p.col on startsearch _p.row 
+		
+		if (j != std::string::npos) {//if found// if j != -1
+			findParams.lastFoundAt = position{ i,j };
+			return findParams.lastFoundAt;
+		};
 	};
-	findparams.reachedend = true;
 
-	return position{ container->size(),container->at( container->size() - 1 )->first };
+	//else
+
+	return position{ container.size() - 1 ,container.at( container.size() - 1 ).length() };//return last allowed position
+
 };
 
 
 
 
 
-bool TEC::replace(std::string& _f, std::string& _r) {
+bool TextEditorCore::replace(std::string& _f, std::string& _r) {
 
-	UL len_f = _f.length();
+	long len_f = _f.length();
 
-	position temp1 = finder(_f);
+	position temp;
+	try {
+		temp = find(_f);
+	} catch (std::logic_error err) {
+		return false;
+	};
 
-	if ((len_f == 0) || (findparams.reachedend == true)) { return false; };
+	if ( len_f == 0 ) { return false; };
 
-	//std::cout << "\n r1: " << temp1.row << " c1: " << temp1.column << " r2: " << temp1.row << " c2: " << temp1.column + len_f <<"\n";
-
-	multilineDelete(temp1.row, temp1.column, temp1.row, temp1.column + len_f );
-	multilineInsert(temp1.row, temp1.column, _r);
+	
+	multilineDelete(temp , position{ temp.row, temp.col + len_f });
+	multilineInsert(temp , _r);
 
 	
 	//outputAll();
-	//std::cout << "\n";
-
+	
 	return true;
 
 };
 
 
-bool TEC::replace(const char* _f, const char* _r) {
-	return replace(std::string{ _f }, std::string{ _r });
-};
-
-
-bool TEC::replace( char* _f,  char* _r) {
+bool TextEditorCore::replace(const char* _f, const char* _r) {
 	return replace(std::string{ _f }, std::string{ _r });
 };
 
 
 
-bool TEC::replaceAll(std::string& _f, std::string& _r) {
+bool TextEditorCore::replaceAll(std::string& _f, std::string& _r) {
 
 	while (replace(_f, _r));
 
@@ -576,16 +532,8 @@ bool TEC::replaceAll(std::string& _f, std::string& _r) {
 };
 
 
-
-
-bool TEC::replaceAll(const char* _f, const char* _r) {
+bool TextEditorCore::replaceAll(const char* _f, const char* _r) {
 	return replaceAll(std::string{ _f }, std::string{ _r });
 };
-
-
-bool TEC::replaceAll(char* _f, char* _r) {
-	return replaceAll(std::string{ _f }, std::string{ _r });
-};
-
 
 
