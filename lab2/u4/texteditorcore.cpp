@@ -56,7 +56,8 @@ void TextEditorCore::multilineInsert(position _p, const std::string& _text) {
 	
 	container.at(_p.row + count  ).append(tail);
 	
-	cursorGoTo(position{ _p.row + count , container.at(_p.row).size() });
+
+	cursorGoTo(position{ _p.row + count , (long)container.at(_p.row + count).size() });
 
 	//outputAll();
 	refreshTotalSymbols();
@@ -75,6 +76,8 @@ void TextEditorCore::insertNewLine(position _p) {
 void TextEditorCore::multilineDelete(position _from, position _to) {
 	//delete all between from and to
 
+	
+
 	if (_from.row == _to.row) {
 
 		if (_from.col == _to.col) { return; };     //do nothing or throw exception ?
@@ -84,16 +87,31 @@ void TextEditorCore::multilineDelete(position _from, position _to) {
 	} else {
 
 		long from_row_len = container.at(_from.row).length();
-		container.at(_from.row).erase(_from.col, from_row_len - _from.col);
 		
-		container.at(_to.col).erase(0, _to.col);
+		if (_from.col != 0) {
+			container.at(_from.row).erase(_from.col, from_row_len - _from.col);
+		} else {
+			container.erase(container.begin() + _from.row);
+		};
 		
+		if (_to.col != container.at(_to.row).length() ) {
+			container.at(_to.row).erase(0, _to.col);
+		} else {
+			container.erase(container.begin() + _to.row);
+		};
+
+
+
+
 		if ( (_to.row - _from.row) > 1 ) { // 100 - 0 = 100 > 1 ; 2 - 0 = 2 > 1 ; 1 - 0 = 1 ;   
 			container.erase(container.begin() + _from.row + 1, container.begin() + _to.row - 1); // 0 + 1 = 1, 100 - 1 = 99 : 1 to 99;___ 0 + 1 = 1, 2 - 1 = 1 : 1 to 1;___ 0 + 1 = 1, 1 - 1 = 0 invalid 
 		};
 		
 	};
 	
+
+	cursorGoTo(_from);
+
 	refreshTotalSymbols();
 	
 	//outputAll();
@@ -140,6 +158,13 @@ TextEditorCore::position* TextEditorCore::whatCursorMethodsChanging()  {
 		return  &selection.to;
 	};
 };
+
+
+
+TextEditorCore::position TextEditorCore::maxPosition() const {
+	return position{ (long)(container.size() - 1), (long)(container.at( container.size() - 1 ).length()) };
+};
+
 
 
 TextEditorCore& TextEditorCore::outputCursorPos() {
@@ -189,7 +214,16 @@ TextEditorCore::TextEditorCore(std::istream& _inpf):TextEditorCore() {//delegate
 		
 		line.erase();
 	};
+
+	if (container.size() == 1 && container.at(0).length() == 0) { throw std::logic_error(Messages::EmptyEntryFile); };
 		
+	
+	//needed check if last char in stream is \n 
+	//if ( _inpf.rdbuf()->sputbackc(char{}) == '\n')	container.push_back(line); //just a try 
+	//char h{};
+	//_inpf.rdbuf()->sputbackc(h);
+	//std::cout << "~" << h << "~";
+
 
 	refreshTotalSymbols();
 
@@ -204,10 +238,6 @@ TextEditorCore::~TextEditorCore() {
 ok, no pointers - no manual deletion 
 };
 */
-
-inline TextEditorCore::position TextEditorCore::getCursorPosition() const{
-	return cursor;
-};
 
 
 TextEditorCore& TextEditorCore::cursorGoOneUp() {
@@ -359,7 +389,7 @@ TextEditorCore& TextEditorCore::HOMEkey() {
 };
 
 TextEditorCore& TextEditorCore::ENDkey() {
-	cursorGoTo(position{ cursor.row, container.at(cursor.row).length() });
+	cursorGoTo(position{ cursor.row, (long)container.at(cursor.row).length() });
 	return *this;
 };
 
@@ -371,7 +401,7 @@ TextEditorCore& TextEditorCore::CtrlHOMEkey() {
 TextEditorCore& TextEditorCore::CtrlENDkey() {
 	long tmp = container.size() - 1;
 
-	cursorGoTo(position{ tmp , container.at(tmp).length() });
+	cursorGoTo(position{ tmp , (long)container.at(tmp).length() });
 
 	return *this;
 };
@@ -380,12 +410,24 @@ TextEditorCore& TextEditorCore::CtrlENDkey() {
 
 TextEditorCore& TextEditorCore::saveTo(std::ostream& _stream)  { 
 	
+
+
+	//std::stringstream ss;
+
 	for (auto str : container) {
 
-		_stream << str.c_str();
+
+		//ss << str << "\n";
+		_stream << str.c_str() << "\n";
 	
 	};
 	
+	/*
+	std::string temp = ss.str();
+	temp.pop_back(); //pop back last \n
+
+	_stream << temp;
+	*/
 	return *this;
 };
 
@@ -416,28 +458,33 @@ TextEditorCore& TextEditorCore::selectReset() {
 
 
 
-std::string& TextEditorCore::selectSelected()  {
+std::string TextEditorCore::selectSelected()  {
 	normalizeSelection();
 	
 	std::stringstream ss{};
 
 	if (selection.from.row == selection.to.row) {//select on one line
 
-		ss << container.at(selection.from.row).substr(selection.from.col, selection.to.col - selection.from.col) ;
-	
+		if (selection.from != selection.to) {
+			ss << container.at(selection.from.row).substr(selection.from.col, selection.to.col - selection.from.col);
+		}else{
+			return std::string{ "" };//is it's legal ?)
+		};
+
 	} else {//2 lines and more
 		
-		ss << container.at(selection.from.row).substr(selection.from.col, container.at(selection.from.row).length() - selection.from.col) << "\n";
+		ss << container.at(selection.from.row).substr(selection.from.col, container.at(selection.from.row).length() - selection.from.col);
+		ss << "\n";
 
 
-		if (selection.from.row - selection.to.row > 1) {
-			for (long i = (selection.from.row + 1);i < selection.to.row; i++) {//between head and tail if n of selected lines more than 3
+		if (selection.to.row - selection.from.row > 1) {
+			for (long i = (selection.from.row + 1); i < selection.to.row; i++) {//between head and tail if n of selected lines more than 3
 
 				ss << container.at(i) << "\n";
 			};
 		};
 		
-		ss << container.at(selection.to.row).substr(0, selection.to.col) << "\n";
+		ss << container.at(selection.to.row).substr(0, selection.to.col) ;
 
 	};
 
@@ -447,8 +494,40 @@ std::string& TextEditorCore::selectSelected()  {
 
 
 
+
+
+
+TextEditorCore::position TextEditorCore::finder(const std::string& _str, TextEditorCore::position& _p) {
+
+	if (_str.length() == 0) { throw std::logic_error(Messages::EmptyFindNotAllowed); };
+	
+	findParams.searchString = _str;
+
+
+	for (long i = _p.row; i < container.size(); i += 1) {
+
+		long j = container.at(i).find(_str, (i == _p.row) ? _p.col : 0);
+
+		if (j != std::string::npos) { //i.e. j != -1 // i.e. found
+			findParams.lastFoundAt = position{ i,j };
+			return findParams.lastFoundAt;
+		};
+	};
+
+	return maxPosition();
+};
+
+
+
+
+
+
 TextEditorCore::position TextEditorCore::find(const std::string& _str)  {//find first instance
-	return finder(_str, position{});
+	position temp = finder(_str, position{});
+	if (temp == maxPosition()) { throw std::logic_error(Messages::NotFound); 
+	}else{
+		return temp;
+	};
 };
 
 TextEditorCore::position TextEditorCore::find(const char* _str)  {//find first instance
@@ -457,60 +536,36 @@ TextEditorCore::position TextEditorCore::find(const char* _str)  {//find first i
 
 
 TextEditorCore::position TextEditorCore::findNext() {
-	if (findParams.lastFoundAt != position{ container.size() - 1, container.at(container.size() - 1 ).length() }) {
-		
-		return finder(findParams.searchString, findParams.lastFoundAt);
-
-	}else{
+	position temp = finder(findParams.searchString,
+		position{
+				  findParams.lastFoundAt.row ,
+				  (long)(findParams.lastFoundAt.col + findParams.searchString.length())
+				});
+	
+	if (temp == maxPosition()) {
 		throw std::logic_error(Messages::NotFound);
+	} else {
+		return temp;
 	};
 };
 
-TextEditorCore::position TextEditorCore::finder(const std::string& _str, TextEditorCore::position& _p ) {
-
-
-
-	findParams.searchString = _str;
-
-	for (long i = _p.row; i  < container.size() ; i++) {
-		long j = container.at(i).find(_str, (i == _p.row) ? _p.col : 0);//start searching from _p.col on startsearch _p.row 
-		
-		if (j != std::string::npos) {//if found// if j != -1
-			findParams.lastFoundAt = position{ i,j };
-			return findParams.lastFoundAt;
-		};
-	};
-
-	//else
-
-	return position{ container.size() - 1 ,container.at( container.size() - 1 ).length() };//return last allowed position
-
-};
 
 
 
 
 
-bool TextEditorCore::replace(std::string& _f, std::string& _r) {
+bool TextEditorCore::replace(std::string& _f, std::string& _r) {//not multiline replace
+	if (!_f.length()) { throw std::logic_error(Messages::EmptyReplacingNotAllowed); };
+	//empty _r allowed
 
-	long len_f = _f.length();
+	position temp = finder(_f, position{});
+	if (temp == maxPosition()) { return false; };
 
-	position temp;
-	try {
-		temp = find(_f);
-	} catch (std::logic_error err) {
-		return false;
-	};
 
-	if ( len_f == 0 ) { return false; };
+	container.at(temp.row).replace(temp.col, findParams.searchString.length(), _r);
 
-	
-	multilineDelete(temp , position{ temp.row, temp.col + len_f });
-	multilineInsert(temp , _r);
+	refreshTotalSymbols();
 
-	
-	//outputAll();
-	
 	return true;
 
 };
@@ -523,12 +578,14 @@ bool TextEditorCore::replace(const char* _f, const char* _r) {
 
 
 bool TextEditorCore::replaceAll(std::string& _f, std::string& _r) {
+	bool res, onereplaced = false;
+	while (res = replace(_f, _r)) { onereplaced = onereplaced || res; };// could be optimized by decreasing number of findloops
 
-	while (replace(_f, _r));
 
-	//outputAll();
 
-	return true;
+	refreshTotalSymbols();
+
+	return onereplaced;
 };
 
 

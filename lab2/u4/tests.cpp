@@ -5,6 +5,10 @@
 #include <sstream>
 
 
+
+//note: if: c_strings are equal strcmp => ret 0
+//		if: strings are equal std::basic_string::compare => ret 0
+
 DECLARE_OOP_TEST( empty_constructor) {
 	TextEditorCore t1{};
 	TextEditorCore::position t1_p = t1.getCursorPosition();
@@ -20,319 +24,445 @@ DECLARE_OOP_TEST( empty_constructor) {
 	t1
 		.cursorGoOneUp()
 		.cursorGoOneLeft();
-
-};
-
-
-
-
-/*
-DECLARE_OOP_TEST(stream_constructor) {
-
-
-
-	setlocale(LC_ALL, "Russian");
-
-	std::ifstream infile1("testIO.txt"), infile2("loremIO.txt");
-
-	infile1.close();
-	infile2.close();
-
-	TextEditorCore test1(infile1);
-	TextEditorCore test2(infile2);
-
-
-	assert(test1.getCursorcol() == 0long);
-	assert(test1.getCursorRow() == 0long);
-
-
-	assert(test2.getCursorcol() == 0long);
-	assert(test2.getCursorRow() == 0long);
-
-};
-
-
-DECLARE_OOP_TEST( cursor ) {
-	std::ifstream  infile2("loremIO.txt");
-
-	TextEditorCore test2(infile2);
-
-	infile2.close();
-
-
-	assert(test2.getCursorcol() == 0long);
-	assert(test2.getCursorRow() == 0long);
-
-	test2.cursorGoOneDown();
-	
-
-	assert(test2.getCursorcol() == 0long);
-	assert(test2.getCursorRow() == 1long);
+	assert(t1_p == TextEditorCore::position(0, 0));
 
 	try {
-		test2.cursorGoTo(0, 200);
-	} catch (const std::logic_error err) {
+		t1.cursorGoTo(TextEditorCore::position{ 100, 100 });
+	} catch (std::logic_error err) {
+		assert( ! strcmp(  err.what(), Messages::InvalidPosition  ) );
+	};
+
+
+	
+	assert(! t1.selectBegin()		
+				.cursorGoOneDown()
+				.cursorGoOneDown()
+				.selectEnd()
+				.selectSelected()
+				.compare("") );
+		
+	try {
+		t1.find("Hello");
+	} catch (std::logic_error err) {
+		assert(!strcmp(err.what(), Messages::NotFound));
+	};
+
+	try {
+		t1.replaceAll("","Hello");
+	}catch (std::logic_error err) {
+		assert(!strcmp(err.what(), Messages::EmptyReplacingNotAllowed));
+	};
+
+
+
+};
+
+
+DECLARE_OOP_TEST(istream_constructor) {
+
+//	setlocale(LC_ALL, "Russian");
+
+
+	std::ifstream infile("loremIO.txt");
+	TextEditorCore t1{ infile };
+
+	infile.close();
+
+	TextEditorCore::position t1_p = t1.getCursorPosition();
+
+	
+	assert(t1_p == TextEditorCore::position(0, 0));//initial position is  0,0
+	
+
+	std::ifstream infile2("empty.txt");
+	try {
+		TextEditorCore t2{ infile2 };
+	} catch (std::logic_error err) {
+		assert(!strcmp(err.what(), Messages::EmptyEntryFile));
+	};
+	infile2.close();
+
+
+};
+
+
+DECLARE_OOP_TEST( getCursorPosition_and_cursormoving) {
+	TextEditorCore t1{};
+	TextEditorCore::position t1_p = t1.getCursorPosition();
+	assert(t1_p == TextEditorCore::position(0, 0));
+
+
+	std::ifstream infile("loremIO.txt");
+	
+	TextEditorCore t2{ infile };
+	
+	infile.close();
+	
+	TextEditorCore::position t2_p = t2.getCursorPosition();
+	assert(t2_p == TextEditorCore::position(0, 0));
+
+
+	for (int i = 0; i <= 50; i += 1) {
+		for (int j = 0; j <= 50; j += 1) {
+			try {
+				t2.cursorGoTo(TextEditorCore::position((long)i, (long)j));
+
+				assert(t2.getCursorPosition() == TextEditorCore::position((long)i, (long)j));
+
+			}
+			catch (std::logic_error err) {
+				assert(!strcmp(err.what(), Messages::InvalidPosition));
+			};
+		};
+	};
+
+	assert(t2.getCursorPosition() == TextEditorCore::position(18, 30));
+
+
+
+
+	for (int i = 0; i <= 50; i += 1) {
+		for (int j = 0; j <= 50; j += 1) {
+				t2.cursorGoOneLeft();
+		};
+	};
+
+	assert(t2.getCursorPosition() == TextEditorCore::position(0, 0));
+
+
+
+
+
+	for (int i = 0; i <= 50; i += 1) {
+		for (int j = 0; j <= 50; j += 1) {
+			t2.cursorGoOneRight();
+		};
+	};
+	
+	assert(t2.getCursorPosition() == TextEditorCore::position( 18, 30));
+
+
+	t2.cursorGoTo(TextEditorCore::position(0, 0));
+
+	for (int i = 0; i <= 50; i += 1) {
+			t2.cursorGoOneDown();
+	};
+	
+	assert(t2.getCursorPosition() == TextEditorCore::position(18, 0));
+
+
+
+	for (int i = 0; i <= 50; i += 1) {
+		t2.cursorGoOneUp();
+	};
+
+	assert(t2.getCursorPosition() == TextEditorCore::position(0, 0));
+
+
+	t2.cursorGoTo( TextEditorCore::position{ 1,30 } );
+	t2.cursorGoOneDown();
+
+	assert(t2.getCursorPosition() == TextEditorCore::position(2, 3));
+
+
+
+	t2.cursorGoTo(TextEditorCore::position{ 5,30 });
+	t2.cursorGoOneUp();
+
+	assert(t2.getCursorPosition() == TextEditorCore::position(4, 2));
+
+
+	t2.cursorGoTo(TextEditorCore::position{ 0,30 });
+	t2.cursorGoOneRight();
+
+	assert(t2.getCursorPosition() == TextEditorCore::position(1, 0));
+
+	t2.cursorGoOneLeft();
+	assert(t2.getCursorPosition() == TextEditorCore::position(0, 30));
+
+
+
+
+};
+
+
+
+DECLARE_OOP_TEST(insertion) {
+	TextEditorCore t1{};
+
+	TextEditorCore::position t1_p = t1.getCursorPosition();
+
+	t1.insert("0123456789")	;
+
+	try {
+		
+		t1.cursorGoTo(TextEditorCore::position{ 0, 30 });
+	
+	} catch ( std::logic_error err ) {
 		assert(!strcmp(err.what(), Messages::InvalidPosition));
 	};
 
-	assert(test2.getCursorcol() == 0long);
-	assert(test2.getCursorRow() == 1long);
 
-	
-	test2.cursorGoTo(0, 5);
+	t1.insert('\n');
 
 
-	assert(test2.getCursorcol() == 5long);
-	assert(test2.getCursorRow() == 0long);
-
-	
-
-	try {
-	
-		test2.cursorGoTo(10000, 5);
-			
-	} catch (const std::logic_error err){
-		assert( !strcmp(err.what(), Messages::InvalidPosition) );
-	};
+	t1.cursorGoTo(TextEditorCore::position{ 1, 0 });
 
 
-	test2.cursorGoTo(14, 4);
-	assert(test2.getCursorRow() == 14 && test2.getCursorcol() == 4);
+
+	t1.insert("\n0123456789\n0123456789\n");
 
 
-	test2.cursorGoTo(0, 0);
 
-	test2.cursorGoOneLeft();
-	test2.cursorGoOneUp();
+	t1.cursorGoTo(TextEditorCore::position{ 4, 0 });
 
-		
-	for (long i = 0; i < test2.get
-	()  ; i++) {
-		test2.cursorGoOneRight();
-	};
-	assert(test2.getCursorRow() == 18 && test2.getCursorcol() == 30);
+	assert( t1.getCursorPosition() == TextEditorCore::position( 4, 0 ) );
 
-	test2.cursorGoTo(18, 30);
-	
-	test2.cursorGoTo(0, 0);
-	for (long i = 0; i < test2.getMaxRows()  ; i++) {
-		test2.cursorGoOneDown();
-	};
-	assert(test2.getCursorRow() == 18 && test2.getCursorcol() == 0);
-
-
-	
-	for (int i = 0; i < 33; i++) {
-		test2.cursorGoOneRight();
-	};	
-	assert(test2.getCursorRow() == 18 && test2.getCursorcol() == 30);
-
-};
-
-DECLARE_OOP_TEST(insert) {
-
-	std::ifstream  infile2("loremIO.txt");
-
-	TextEditorCore test2(infile2);
-	infile2.close();
-	
-	std::string str1{ "\nABCDE\nFGHIJ\nKLMNO\nPQRST\nUVWXY\nZ\n" };
-
-
-/*
-
-	for (int i = 0; i < test2.getMaxRows(); i++) {
-		test2.cursorGoOneDown();
-	};
-
-	for (int i = 0; i < 100; i++) {
-		test2.cursorGoOneRight();
-	};
-*/	test2
-		.insert('\n')
-		.cursorGoTo(8,5)
-		.insert(str1)
-		.cursorGoTo(26, 30)
-		.insert("\n")
-		.cursorGoOneDown()
-		.insert('\n')
-		.cursorGoOneDown()
-		.insert("\n")
-		.cursorGoOneUp()
-		.cursorGoOneUp()
-		.cursorGoOneUp()
-		.cursorGoOneUp()
-		.cursorGoOneUp()
-		.cursorGoOneUp()
-		.insert(str1)
-		.insert("KU")
-		.insert("\nKA")
-		.insert("\nREKU\n")
-		;
-	assert(test2.getCursorRow() == 33 && test2.getCursorcol() == 0);
 
 
 };
 
 
-DECLARE_OOP_TEST(_delete) {
-	std::ifstream  infile2("loremIO.txt");
-	TextEditorCore test2(infile2);
-	infile2.close();
+DECLARE_OOP_TEST( keys ) {
+	std::ifstream  infile("loremIO.txt");
+	TextEditorCore t1(infile);
+	infile.close();
 
+	t1.ENDkey();
+	assert(t1.getCursorPosition()  == TextEditorCore::position(0, 30));
+	
+	t1.CtrlENDkey();
+	assert(t1.getCursorPosition() == TextEditorCore::position(18, 30));
+	
+	t1.HOMEkey();
+	assert(t1.getCursorPosition() == TextEditorCore::position(18, 0));
 
-	assert(!strcmp( test2.cursorGoTo(13,0).insert("SOMETHING").cursorGoTo(13, 0).selectBegin().cursorGoTo(13,9).selectEnd().deleteSelectedSegment().selectSelected().c_str(), ""  ));
-	assert(!strcmp(test2.selectBegin().CtrlENDkey().selectEnd().deleteSelectedSegment().selectSelected().c_str() ,  "" ) );
-};
+	t1.CtrlHOMEkey();
+	assert(t1.getCursorPosition() == TextEditorCore::position(0, 0));
+	
 
+	TextEditorCore t2{};
 
-DECLARE_OOP_TEST(buttons) {
-	std::ifstream  infile2("loremIO.txt");
-	TextEditorCore test2(infile2);
-	infile2.close();
+	t2.ENDkey();
+	assert(t2.getCursorPosition() == TextEditorCore::position(0, 0));
 
-	test2.ENDkey();
-	assert(test2.getCursorRow() == 0 && test2.getCursorcol() == 30);
-	test2.CtrlENDkey();
-	assert(test2.getCursorRow() == 18 && test2.getCursorcol() == 30);
-	test2.HOMEkey();
-	assert(test2.getCursorRow() == 18 && test2.getCursorcol() == 0);
-	test2.CtrlHOMEkey();
-	assert(test2.getCursorRow() == 0 && test2.getCursorcol() == 0);
+	t2.CtrlENDkey();
+	assert(t2.getCursorPosition() == TextEditorCore::position(0, 0));
 
+	t2.HOMEkey();
+	assert(t2.getCursorPosition() == TextEditorCore::position(0, 0));
+
+	t2.CtrlHOMEkey();
+	assert(t2.getCursorPosition() == TextEditorCore::position(0, 0));
+
+	
 };
 
 
 DECLARE_OOP_TEST(saveTo) {
+
+std::ifstream  infile("loremIO.txt");
+
+TextEditorCore t(infile);
+
+infile.close();
+
+
+std::ofstream ofile("newIO.txt");
+
+if (!ofile) {
+	std::cerr << "cannot open file\n";
+};
+
+t.saveTo( ofile );
+
+ofile.close();
+
+
+// check files are equal
+
+std::ifstream ifile1("loremIO.txt");
+std::ifstream ifile2("newIO.txt");
+
+
+std::stringstream first,second;
+
+first << ifile1.rdbuf();
+second << ifile2.rdbuf();
+
+
+
+assert( !first.str().compare( second.str()) );
+
+ifile1.close();
+ifile2.close();
+
+
+std::remove("newIO.txt");
+
+};
+
+
+DECLARE_OOP_TEST(selection) {
 	std::ifstream  infile("loremIO.txt");
-	TextEditorCore test2(infile);
+	TextEditorCore t1(infile);
 	infile.close();
+
+	std::string got = t1
+						.selectBegin()
+						.cursorGoTo(TextEditorCore::position(0, 30))
+						.selectEnd()
+						.selectSelected();
+
 	
+	assert(got ==  "012345678901234567890123456789" );
 
-	std::ofstream ofile3("newIO.txt");
-	if (!ofile3) {
-		std::cerr << "cannot open file\n";
-	};
-	test2.saveTo( ofile3 );
-	ofile3.close();
-
-	std::ifstream ifile3("loremIO.txt");
-	std::ifstream ifile4("newIO.txt");
-
-
-	std::stringstream first,second;
-
-	first << ifile3.rdbuf();
-	second << ifile4.rdbuf();
-
-
-
-	assert( strcmp(first.str().c_str(), second.str().c_str()) );
 	
-	ifile3.close();
-	ifile4.close();
+	got = t1
+			.selectBegin()
+			.cursorGoTo(TextEditorCore::position(0, 30))
+			.selectReset()
+			.selectEnd()
+			.selectSelected();
+
+	assert(got == "");
 
 
-	std::remove("newIO.txt");	
-};
 
-DECLARE_OOP_TEST(select) {
-	std::string test_str{ "abcde\nfghijklmno\npqrstuvwxy\nz" };
+	got = t1.CtrlHOMEkey()
+			.cursorGoOneRight()
+			.selectBegin()
+			.cursorGoOneDown()
+			.cursorGoOneDown()
+			.cursorGoOneRight()
+			.cursorGoOneDown()
+			.selectEnd()
+			//.outputSelectPoss()
+			.selectSelected();
+	assert( !got.compare("12345678901234567890123456789\n012345678901234567890123456789\n012\n01"));
 
-	std::ifstream  infile2("loremIO.txt");
-	TextEditorCore test2(infile2);
-	infile2.close();
 
-	assert( strcmp(
-		test2
-		.insert(test_str)
-		.cursorGoTo(0, 0)
-		.selectBegin()
-		.cursorGoTo(2, 10)
-		.selectEnd()
-		.selectSelected().c_str(), test_str.c_str() ) );
+	got = t1.CtrlENDkey()
+			.selectBegin()
+			.cursorGoOneUp()
+			.cursorGoOneUp()
+			.cursorGoOneUp()
+			.cursorGoOneUp()
+			.selectEnd()
+			//.outputSelectPoss()
+			.selectSelected();
 
-	assert(strcmp(
-		test2
-		.selectBegin()
-		.cursorGoTo(0, 0)
-		.selectEnd()
-		.selectSelected().c_str(), test_str.c_str()));
+	assert(!got.compare("01234\n\n\n\n012345678901234567890123456789"));
 
 
 };
+
+
+
+DECLARE_OOP_TEST(delete_selected) {
+	std::ifstream  infile("loremIO.txt");
+	TextEditorCore t1(infile);
+	infile.close();
+
+	t1.selectBegin()
+		.cursorGoTo(TextEditorCore::position(1, 30))
+		.selectEnd()
+		.deleteSelectedSegment();
+
+
+	std::string got = t1.selectBegin()
+					.cursorGoOneDown()
+					.cursorGoOneDown()
+					.selectSelected();
+
+
+	assert( got.compare( "012\n01234\n" ) );
+
+
+
+};
+
+
+
+
+
 
 
 
 DECLARE_OOP_TEST(find) {
-	
+	std::ifstream  infile("loremIO.txt");
+	TextEditorCore t1(infile);
+	infile.close();
 
-	std::ifstream  infile2("loremIO.txt");
-	TextEditorCore test2(infile2);
-	infile2.close();
+	TextEditorCore::position f = t1.find("012345");
 
-	
-	test2
-		.cursorGoTo(5, 5)
-		.insert("THIS IS UNIQUE TEXT")
-		.cursorGoTo(10, 20)
-		.insert("THIS IS NOT UNIQUE TEXT")
-		.cursorGoTo(14, 0)
-		.insert("THIS IS NOT UNIQUE TEXT")
-		//.outputAll()
-		;
-	
-	auto temp = test2.find("THIS IS UNIQUE TEXT");
-	assert( temp.row == 5 && temp.col == 5);
 
-	temp = test2.find("THIS IS NOT UNIQUE TEXT");
-	assert(temp.row == 10 && temp.col == 20);
+	assert(f == TextEditorCore::position{});
 
-	temp = test2.findNext();
 
-	assert(temp.row == 14 && temp.col == 0);
+
+	f = t1.findNext();
+	assert( f == TextEditorCore::position( 0,10 ) );
+
+
+	f = t1.findNext();
+
+	assert(f == TextEditorCore::position(0, 20));
+
+	f = t1.findNext();
+	assert(f == TextEditorCore::position(1, 0));
+
 
 	try {
-		temp = test2.findNext();
-	}
-	catch (const std::logic_error err) {
-		assert( ! strcmp(err.what(),Messages::NotFound) );
+		f = t1.find("");
+	} catch (std::logic_error err) {
+		assert(!strcmp(err.what(), Messages::EmptyFindNotAllowed));
+	};
+
+	try {
+		f = t1.findNext();
+	} catch (std::logic_error err) {
+		assert(!strcmp(err.what(), Messages::EmptyFindNotAllowed));
+	};
+	
+	try {
+		f = t1.find("Hello");
+	} catch (std::logic_error err) {
+		assert(!strcmp(err.what(), Messages::NotFound));
 	};
 
 
 
+
 };
+
+
 
 DECLARE_OOP_TEST(replace) {
-	std::ifstream  infile2("loremIO.txt");
-	TextEditorCore test2(infile2);
-	infile2.close();
+	std::ifstream  infile("loremIO.txt");
+	TextEditorCore t1(infile);
+	infile.close();
+
+
+	t1.replaceAll("0123456789", "*");
+	t1.replaceAll("01234", "");
+	t1.replaceAll("012", "");
+	t1.replaceAll("01", "");
+	t1.replaceAll("*", "");
+
+	assert(t1.replace("0","") == false);
+	
+	t1.outputAll();
+	
+	assert(! t1.CtrlHOMEkey().selectBegin().CtrlENDkey().selectSelected().compare( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" ));
 
 	
-	test2.insert("Hello World").replace(std::string{ "Hello World" }, std::string{ "~" });
-	try {
-		test2.find("Hello World");
-	}
-	catch (std::logic_error err) {
-		assert(!strcmp(err.what(), Messages::NotFound));
-	};
 
 
-	auto temp = test2.find("~");
-	assert(temp.row == 0 && temp.col == 0);
-
-	
-	test2.replaceAll(std::string{ "0123456789" }, std::string{ "*" });
-
-	try {
-		test2.find("0123456789");
-	} catch ( std::logic_error err ) {
-		assert(!strcmp(err.what(), Messages::NotFound));
-	};
-	
 };
 
 
+/*
 DECLARE_OOP_TEST(mem_tst_usng_brpnts) {
 	TextEditorCore* ptest;
 
@@ -347,3 +477,4 @@ DECLARE_OOP_TEST(mem_tst_usng_brpnts) {
 	delete[] ptest;
 };
 
+*/

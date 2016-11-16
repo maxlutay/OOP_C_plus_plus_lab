@@ -57,6 +57,8 @@ private:
 	void normalizeSelection();
 		
 	position* whatCursorMethodsChanging() ;
+	position maxPosition() const;
+
 	
 public:
 //dev start
@@ -72,18 +74,25 @@ public:
 	TextEditorCore();
 	TextEditorCore(std::istream&);
 
+
+	//copy
 	TextEditorCore(const TextEditorCore&)             = delete;
 	TextEditorCore& operator= (const TextEditorCore&) = delete;
 
+
+	//move
 	TextEditorCore(TextEditorCore&&)                  = delete;
 	TextEditorCore& operator= (TextEditorCore&&)      = delete;
+
 
 	~TextEditorCore() = default;
 
 //base end
 //cursor start
 	
-	position getCursorPosition() const;
+	inline position getCursorPosition() const {
+		return cursor;
+	};
 
 	TextEditorCore& cursorGoOneUp();
 	TextEditorCore& cursorGoOneRight();
@@ -122,7 +131,7 @@ public:
 	TextEditorCore& selectBegin();
 	TextEditorCore& selectEnd();
 	TextEditorCore& selectReset();
-	std::string& selectSelected();//!!not const;//can't be const because of 
+	std::string selectSelected();//!!not const;//can't be const because of 
 												//non-const private normalizeSelection() method
 
 //select end
