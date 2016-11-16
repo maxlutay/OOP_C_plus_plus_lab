@@ -22,11 +22,11 @@ public:
 			position (position&&)                 = default;
 			position& operator =(position&&)      = default;
 
-			bool operator ==(position& _cp) const { return row == _cp.row && col == _cp.col; };
-			bool operator !=(position& _cp) const { return row != _cp.row || col != _cp.col; };
+			bool operator ==(const position& _cp) const { return row == _cp.row && col == _cp.col; };
+			bool operator !=(const position& _cp) const { return row != _cp.row || col != _cp.col; };
 
 
-			long row, col; //not private because wanted direct manipulation ?or provide method
+			long row, col; //not private because wanted direct manipulation ?or provide method ? or use only copies
 
 	};
 
@@ -140,17 +140,17 @@ public:
 	position find(const char*)  ;
 	position find(const std::string&) ;
 	position findNext()  ;
-	position finder(const std::string& _str, position& _p )  ;
+	position finder(const std::string& _str,const position& _p )  ;
 	
 //find end
 //replace start
 
 	bool replace( const char*,const char* );
 		//bool replace( char*,char*);
-	bool replace(std::string&,std::string&);
+	bool replace(const std::string&,const std::string&);
 	bool replaceAll(const char*, const char*);
 		//bool replaceAll(char*, char*);
-	bool replaceAll(std::string&, std::string&);
+	bool replaceAll(const std::string&,const std::string&);
 
 //replace end	
 

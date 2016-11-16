@@ -3,7 +3,7 @@
 #include <sstream>
 
 
-bool TextEditorCore::validatePosition( const TextEditorCore::position _pos) const {
+bool TextEditorCore::validatePosition( TextEditorCore::position _pos) const {
 	return
 			_pos.row >= 0 &&
 			_pos.col >= 0 &&
@@ -129,23 +129,16 @@ void TextEditorCore::refreshTotalSymbols() {
 };
 
 void TextEditorCore::normalizeSelection() {
-	if (selection.from.row > selection.to.row) {
+	if (selection.from.row > selection.to.row ||
+		(selection.from.row ==  selection.to.row  && selection.from.col > selection.to.col)) {
 		
-		position temp{ selection.to.row, selection.to.col };
+		position temp = selection.to;
 		
 		selection.to = selection.from;
 		
 		selection.from = temp;
 	
-	} else if ( selection.from.col > selection.to.col ) {
-		
-		long temp = selection.to.col;
-		
-		selection.to.col = selection.from.col;
-		
-		selection.from.col = temp;
 	};
-
 	//else do nothing
 };
 
@@ -497,7 +490,7 @@ std::string TextEditorCore::selectSelected()  {
 
 
 
-TextEditorCore::position TextEditorCore::finder(const std::string& _str, TextEditorCore::position& _p) {
+TextEditorCore::position TextEditorCore::finder(const std::string& _str,const TextEditorCore::position& _p) {
 
 	if (_str.length() == 0) { throw std::logic_error(Messages::EmptyFindNotAllowed); };
 	
@@ -554,7 +547,7 @@ TextEditorCore::position TextEditorCore::findNext() {
 
 
 
-bool TextEditorCore::replace(std::string& _f, std::string& _r) {//not multiline replace
+bool TextEditorCore::replace(const std::string& _f,const std::string& _r) {//not multiline replace
 	if (!_f.length()) { throw std::logic_error(Messages::EmptyReplacingNotAllowed); };
 	//empty _r allowed
 
@@ -577,7 +570,7 @@ bool TextEditorCore::replace(const char* _f, const char* _r) {
 
 
 
-bool TextEditorCore::replaceAll(std::string& _f, std::string& _r) {
+bool TextEditorCore::replaceAll(const std::string& _f,const std::string& _r) {
 	bool res, onereplaced = false;
 	while (res = replace(_f, _r)) { onereplaced = onereplaced || res; };// could be optimized by decreasing number of findloops
 

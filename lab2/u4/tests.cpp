@@ -438,7 +438,7 @@ DECLARE_OOP_TEST(find) {
 
 
 
-DECLARE_OOP_TEST(replace) {
+DECLARE_OOP_TEST(replace) {//replacing non multiline 
 	std::ifstream  infile("loremIO.txt");
 	TextEditorCore t1(infile);
 	infile.close();
@@ -452,7 +452,7 @@ DECLARE_OOP_TEST(replace) {
 
 	assert(t1.replace("0","") == false);
 	
-	t1.outputAll();
+	//t1.outputAll();
 	
 	assert(! t1.CtrlHOMEkey().selectBegin().CtrlENDkey().selectSelected().compare( "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" ));
 
