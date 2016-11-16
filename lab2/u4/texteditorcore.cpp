@@ -20,7 +20,7 @@ void TextEditorCore::multilineInsert(position _p, const std::string& _text) {
 	std::stringstream ss{ _text };
 
 	bool is_untill_new_line_appended = false;
-	long n_symbols_added = 0, count = 0;//count counts rows for further tail insertion
+	long  count = 0;//count counts rows for further tail insertion
 	
 
 
@@ -43,7 +43,7 @@ void TextEditorCore::multilineInsert(position _p, const std::string& _text) {
 
 		};
 
-		n_symbols_added += line.length() + 1;
+		
 
 		line.erase();
 	};
