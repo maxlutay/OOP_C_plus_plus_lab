@@ -3,25 +3,31 @@
 #ifndef _CONTROLLER_HPP_
 #define _CONTROLLER_HPP_
 
-/*****************************************************************************/
 
-class Controller
-{
+#include<vector>
+#include<memory>
 
-/*-----------------------------------------------------------------*/
+#include"teapot.hpp"
+#include"automaticteapot.hpp"
+#include"manualteapot.hpp"
+
+class Controller{
+
 
 public:
 
 /*-----------------------------------------------------------------*/
 
-	Controller ();
+	Controller () = default;
 
 	Controller ( const Controller & ) = delete;
 
 	Controller & operator = ( const Controller & ) = delete;
 
-	~ Controller ();
+	~ Controller () = default;
 
+
+	
 /*-----------------------------------------------------------------*/
 
 	void createManualTeapot ( int _maxVolume, int _speed );
@@ -59,15 +65,13 @@ public:
 /*-----------------------------------------------------------------*/
 
 private:
+	std::vector<std::unique_ptr<Teapot> > teapots;
 
-/*-----------------------------------------------------------------*/
+	Teapot * getTeapot(int _teapotIndex)const;
 
-	// TODO ...
-
-/*-----------------------------------------------------------------*/ 
 
 };
 
-/*****************************************************************************/
+
 
 #endif // _CONTROLLER_HPP_

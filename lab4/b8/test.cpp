@@ -366,7 +366,7 @@ DECLARE_OOP_TEST ( teapots_1_17_manual_teapot_wait_several_minutes_when_teapot_i
 	assert( c.isTeapotOn( 0 ) == true );
 
 	c.wait( 3 );
-
+	
 	assert( c.getTeapotCurrentVolume( 0 ) == 320 );
 	assert( c.getTeapotMaxVolume( 0 ) == 500 );
 	assert( c.getTeapotCurrentTemperature( 0 ) == 100 );

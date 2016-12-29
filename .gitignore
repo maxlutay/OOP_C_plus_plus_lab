@@ -1,0 +1,11 @@
+*
+
+
+!.gitignore
+!*lab*
+!*lab*/**
+
+*lab*/*/Debug
+*lab*/*/.vs
+*lab*/*/*.filters
+

@@ -1,11 +1,15 @@
-// (C) 2013-2016, Sergei Zaychenko, KNURE, Kharkiv, Ukraine
-
 #include "automaticteapot.hpp"
+#include<utility>
 
-/*****************************************************************************/
-
-
-// TODO
+AutomaticTeapot::AutomaticTeapot(int _capacity, int _heatSpeed) : Teapot(_capacity, _heatSpeed) {};
 
 
-/*****************************************************************************/ 
+
+void AutomaticTeapot::noWater() {
+	turnOff();
+};
+
+
+void AutomaticTeapot::waterBoiling() {
+	turnOff();
+};
