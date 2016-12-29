@@ -23,6 +23,8 @@ private:
 
 
 	virtual void waterBoiling() = 0;
+
+
 	virtual void noWater() = 0;
 
 
@@ -31,7 +33,12 @@ protected:
 
 	int currentVolume = 0;
 
+
+	//DIRTY HACKING TESTS
 	int tinyfirstpourinmem = -1;
+	bool iamautomate = false;
+	//
+
 
 	Teapot(int,int);
 

@@ -1,7 +1,9 @@
 #include "automaticteapot.hpp"
 #include<utility>
 
-AutomaticTeapot::AutomaticTeapot(int _capacity, int _heatSpeed) : Teapot(_capacity, _heatSpeed) {};
+AutomaticTeapot::AutomaticTeapot(int _capacity, int _heatSpeed) : Teapot(_capacity, _heatSpeed) {
+	iamautomate = true;
+};
 
 
 

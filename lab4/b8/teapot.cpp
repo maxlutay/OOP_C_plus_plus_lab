@@ -33,14 +33,33 @@ void Teapot::refreshState() {
 	if (powerStatus) {
 		if (!currentVolume) { noWater();return; };
 
-
+		/*
 		if ( currentTemperature  < 100) {currentTemperature += heatSpeed;
 		//985	return;
-
+		return;
 		};
 		//334	if (currentTemperature >= 100) { waterBoiling(); };
 		//985		waterBoiling();	
+		waterBoiling();
 		return;
+		*/
+
+		if (iamautomate) {
+			if (currentTemperature  < 100) {
+				currentTemperature += heatSpeed;
+			};
+			if (currentTemperature >= 100) { waterBoiling(); };
+
+			return;
+		}else{
+			if (currentTemperature  < 100) {
+				currentTemperature += heatSpeed;
+				return;
+			};
+				waterBoiling();
+				return;
+		};
+
 
 	};
 

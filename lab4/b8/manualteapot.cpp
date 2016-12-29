@@ -14,7 +14,7 @@ void ManualTeapot::waterBoiling() {
 	//evaporatedVolume = currentVolume * 10 *EVAPORATION_SPEED_PERCENTS;//percents * 0.01 * 1000 = percents * 10
 	//currentVolume -= evaporatedVolume/1000;	
 
-		evaporatedVolume = tinyfirstpourinmem * 10 * EVAPORATION_SPEED_PERCENTS;
+		evaporatedVolume = tinyfirstpourinmem * 10 * EVAPORATION_SPEED_PERCENTS;//mililiters
 		currentVolume -= evaporatedVolume / 1000;
 
 
